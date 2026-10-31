@@ -1,0 +1,7 @@
+node_modules/
+android/
+dist/
+.kit/
+_site/
+*.log
+.DS_Store
