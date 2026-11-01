@@ -80,7 +80,7 @@ export const SCENES = [
   scene('update', tab('profile') + `
     const b = parseInt(arg.info.build, 10) || 2;
     KG.VERSION.build = String(b - 1 > 0 ? b - 1 : b);
-    KG.update.info = { version: arg.info.version || '1.01', build: b, notes: (arg.info.notes || []).slice(0, 4), size: 0 };
+    KG.update.info = { version: arg.info.version || '1.02', build: b, notes: (arg.info.notes || []).slice(0, 4), size: 0 };
     KG.update.state = 'idle';
     KG.openSheet('update');`, { wait: 700 }),
   scene('feedback', tab('profile') + " KG.openSheet('feedback');", { fill: ['#fbm', 'הייתי רוצה קטגוריה על הליגה הפורטוגלית'], wait: 600 })

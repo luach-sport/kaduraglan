@@ -12,10 +12,10 @@ test('points by level, wrong answer gives nothing', () => {
   assert.equal(w.career, 0);
 });
 
-test('each hint takes 25%, never below a quarter', () => {
-  assert.equal(KG.score({ correct: true, diff: 3, hints: 1, streak: 1, firstSolve: true }).pts, 150);
-  assert.equal(KG.score({ correct: true, diff: 3, hints: 2, streak: 1, firstSolve: true }).pts, 100);
-  assert.equal(KG.score({ correct: true, diff: 3, hints: 9, streak: 1, firstSolve: true }).pts, 50);
+test('the 50:50 hint makes the question worth half', () => {
+  assert.equal(KG.score({ correct: true, diff: 3, hints: 0, streak: 1, firstSolve: true }).pts, 200);
+  assert.equal(KG.score({ correct: true, diff: 3, hints: 1, streak: 1, firstSolve: true }).pts, 100);
+  assert.equal(KG.score({ correct: true, diff: 3, hints: 9, streak: 1, firstSolve: true }).pts, 100);
 });
 
 test('streak bonus from the 3rd answer, capped at +50%', () => {

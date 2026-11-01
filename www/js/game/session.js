@@ -28,8 +28,9 @@
     const now = Date.now();
     return Object.assign({
       id: KG.uid(), mode, ids: ids.slice(), i: 0, answers: [], score: 0, career: 0, streak: 0, best: 0,
-      startedAt: now, qStart: now, phase: 'question', hints: {}, clues: {}, timed: false, seconds: KG.CFG.SECONDS,
-      lives: null, title: (KG.CFG.MODE[mode] || {}).title || '', reward: true, skip: false
+      startedAt: now, qStart: now, phase: 'question', hints: {}, clues: {}, removed: {}, timed: false,
+      hintsLeft: KG.CFG.HINTS_PER_GAME, skipsLeft: KG.CFG.SKIPS_PER_GAME, seconds: KG.CFG.SECONDS,
+      lives: null, title: (KG.CFG.MODE[mode] || {}).title || '', reward: true
     }, extra || {});
   }
   GM.begin = (sess) => {
@@ -40,13 +41,13 @@
     return sess;
   };
 
-  GM.startFree = (filters, count, title) => GM.begin(make('free', KG.pick.forGame(filters, count), { title: title || 'משחק חופשי', filters, skip: true }));
-  GM.makeFree = (ids, title) => make('free', KG.shuffle(ids).slice(0, 15).sort((a, b) => ((KG.C.q(a) || {}).diff || 0) - ((KG.C.q(b) || {}).diff || 0)), { title: title || 'משחק חופשי', skip: true });
+  GM.startFree = (filters, count, title) => GM.begin(make('free', KG.pick.forGame(filters, count), { title: title || 'משחק חופשי', filters }));
+  GM.makeFree = (ids, title) => make('free', KG.shuffle(ids).slice(0, 15).sort((a, b) => ((KG.C.q(a) || {}).diff || 0) - ((KG.C.q(b) || {}).diff || 0)), { title: title || 'משחק חופשי' });
   GM.startTeam = (teamId, count) => {
     const t = KG.C.team(teamId);
-    return GM.begin(make('team', KG.pick.forGame({ teams: [teamId] }, count || 10), { title: 'אתגר ' + (t ? t.he : ''), team: teamId, skip: true }));
+    return GM.begin(make('team', KG.pick.forGame({ teams: [teamId] }, count || 10), { title: 'אתגר ' + (t ? t.he : ''), team: teamId }));
   };
-  GM.startJourney = (n) => GM.begin(make('journey', KG.pick.stageIds(n), { title: 'מסע החידות · שלב ' + n, stage: n, skip: true }));
+  GM.startJourney = (n) => GM.begin(make('journey', KG.pick.stageIds(n), { title: 'מסע החידות · שלב ' + n, stage: n }));
   GM.startDaily = () => {
     const day = KG.dateKey();
     const done = P().daily[day];
@@ -61,7 +62,7 @@
     const filters = sub === 'crest' ? { images: 'only', sub: 'crest' } : { images: 'only' };
     let ids = KG.pick.forGame(filters, 10);
     if (sub !== 'crest') ids = ids.filter((id) => (KG.C.q(id) || {}).sub !== 'crest').concat(ids.filter((id) => (KG.C.q(id) || {}).sub === 'crest')).slice(0, 10);
-    return GM.begin(make(sub === 'crest' ? 'crest' : 'image', ids, { title: sub === 'crest' ? 'חצי סמל' : 'זיהוי תמונה', fx: fx || null, skip: true }));
+    return GM.begin(make(sub === 'crest' ? 'crest' : 'image', ids, { title: sub === 'crest' ? 'חצי סמל' : 'זיהוי תמונה', fx: fx || null }));
   };
   // Head to head: every round gives each player a question of the same level.
   GM.startH2H = (names, perPlayer, filters) => {
@@ -78,7 +79,7 @@
       if (!pool) break;
       for (let k = 0; k < n; k++) ids.push(pool.shift().id);
     }
-    const players = names.map((name) => ({ name, score: 0, correct: 0, streak: 0 }));
+    const players = names.map((name) => ({ name, score: 0, correct: 0, streak: 0, hintsLeft: KG.CFG.HINTS_PER_GAME, skipsLeft: KG.CFG.SKIPS_PER_GAME }));
     return GM.begin(make('h2h', ids, { title: 'ראש בראש', players, timed: P().settings.timer, phase: 'handoff', reward: false }));
   };
 
@@ -91,22 +92,32 @@
     return KG.shuffle([q.a].concat(wrong), KG.rng(GM.cur.id + ':' + q.id));
   };
   GM.orderItems = (q) => KG.shuffle(q.items.map((it) => it.t), KG.rng(GM.cur.id + ':o:' + q.id));
-  GM.hintsLeft = (q) => (q && q.hints ? q.hints.length - (GM.cur.hints[q.id] || 0) : 0);
+  // One hint and one skip in every game (each player has their own in head to head).
+  // The hint is a 50:50: two wrong answers disappear (in "order by year", the earliest item is placed first).
+  // A question answered with the hint is worth half (KG.CFG.HINT_COST).
+  const owner = () => GM.player() || GM.cur;
+  const left = (o, k) => (o[k] == null ? 1 : o[k]);
+  GM.hintsLeft = () => (GM.cur ? left(owner(), 'hintsLeft') : 0);
+  GM.skipsLeft = () => (GM.cur ? left(owner(), 'skipsLeft') : 0);
+  GM.hintUsed = (q) => !!(GM.cur && q && GM.cur.hints[q.id]);
+  GM.hintFits = (q) => !!q && ((['mc', 'whoami', 'img'].includes(q.type) && Array.isArray(q.w) && q.w.length >= 2) || (q.type === 'order' && q.items.length >= 3));
+  GM.canHint = (q) => !!GM.cur && GM.cur.phase === 'question' && GM.hintFits(q) && !GM.hintUsed(q) && GM.hintsLeft() > 0;
   GM.useHint = () => {
     const s = GM.cur, q = GM.q();
-    if (!s || s.phase !== 'question' || GM.hintsLeft(q) <= 0) return false;
-    s.hints[q.id] = (s.hints[q.id] || 0) + 1;
+    if (!GM.canHint(q)) return false;
+    s.hints[q.id] = 1;
+    if (q.type !== 'order') {
+      const wrong = GM.options(q).filter((o) => KG.norm(o) !== KG.norm(q.a));
+      s.removed = s.removed || {};
+      s.removed[q.id] = KG.shuffle(wrong, KG.rng(s.id + ':h:' + q.id)).slice(0, Math.min(2, wrong.length - 1));
+    }
+    owner().hintsLeft = left(owner(), 'hintsLeft') - 1;
     KG.saveProgress();
     return true;
   };
-  GM.cluesShown = (q) => Math.min(q.clues ? q.clues.length : 0, 1 + (GM.cur.clues[q.id] || 0));
-  GM.moreClue = () => {
-    const s = GM.cur, q = GM.q();
-    if (!s || s.phase !== 'question' || !q.clues || GM.cluesShown(q) >= q.clues.length) return false;
-    s.clues[q.id] = (s.clues[q.id] || 0) + 1;
-    KG.saveProgress();
-    return true;
-  };
+  GM.removed = (q) => (GM.cur && GM.cur.removed && q && GM.cur.removed[q.id]) || [];
+  // "Who am I?": all the clues are part of the question and are shown from the start.
+  GM.cluesShown = (q) => (q.clues ? q.clues.length : 0);
 
   GM.isCorrect = (q, choice) => {
     if (choice == null) return false;
@@ -123,9 +134,10 @@
     const skipped = !!(opts && opts.skip);
     const correct = !skipped && GM.isCorrect(q, choice);
     const ms = Math.max(0, now - s.qStart);
-    const hints = (s.hints[q.id] || 0) + (s.clues[q.id] || 0);
+    const hints = s.hints[q.id] ? 1 : 0;
     const pl = GM.player();
-    const streak = correct ? (pl ? pl.streak : s.streak) + 1 : 0;
+    const before = pl ? pl.streak : s.streak;
+    const streak = correct ? before + 1 : skipped ? before : 0;   // a skip doesn't break the streak
     const firstSolve = correct && !(p.q[q.id] && p.q[q.id].s);
     const sc = KG.score({ correct, diff: q.diff, hints, timed: s.timed, timeLeftFrac: s.timed ? 1 - ms / (s.seconds * 1000) : NaN, streak, firstSolve, mode: s.mode, dailyReward: s.reward, noReward: s.mode === 'daily' && !s.reward });
     s.phase = 'feedback';
@@ -134,7 +146,7 @@
     s.answers.push({ qid: q.id, ok: correct, skip: skipped, pts: sc.pts, career: sc.career, hints, ms, choice: choice == null ? null : choice, p: pl ? s.i % s.players.length : undefined });
     if (pl) { pl.streak = streak; if (correct) { pl.correct++; pl.score += sc.pts; } }
     else { s.streak = streak; s.best = Math.max(s.best, streak); }
-    if (s.lives != null && !correct) s.lives = Math.max(0, s.lives - 1);
+    if (s.lives != null && !correct && !skipped) s.lives = Math.max(0, s.lives - 1);
 
     let unlocked = [];
     if (s.mode !== 'h2h') {
@@ -164,7 +176,13 @@
     KG.saveProgress();
     return { correct, sc, unlocked, q, skipped };
   };
-  GM.skip = () => GM.answer(null, { skip: true });
+  GM.skip = () => {
+    const s = GM.cur;
+    if (!s || s.phase !== 'question' || GM.skipsLeft() <= 0) return null;
+    const o = owner();
+    o.skipsLeft = left(o, 'skipsLeft') - 1;
+    return GM.answer(null, { skip: true });
+  };
 
   GM.next = () => {
     const s = GM.cur;

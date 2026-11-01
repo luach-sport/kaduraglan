@@ -51,8 +51,13 @@
 .order-item.no { border-color: var(--red); background: var(--red-soft); }
 .order-item .yr { margin-inline-start: auto; font-weight: 800; color: var(--muted); }
 
-.qtools { display: flex; gap: 10px; }
-.qtools .btn { min-height: 46px; font-size: 14.5px; }
+.qtools { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.qtools .btn.tool { min-height: 56px; padding: 8px 12px; justify-content: flex-start; text-align: right; gap: 10px; }
+.qtools .tool .tl { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+.qtools .tool b { font-size: 15px; font-weight: 800; }
+.qtools .tool .tl span { font-size: 12px; font-weight: 500; color: var(--muted); }
+.opt.gone { opacity: .28; pointer-events: none; text-decoration: line-through; box-shadow: none; }
+.order-item.fixed { border-style: dashed; pointer-events: none; }
 .hintbox { display: flex; flex-direction: column; gap: 8px; }
 .hintbox .h { display: flex; gap: 10px; padding: 10px 12px; border-radius: 14px; background: var(--gold-soft); color: var(--ink); font-size: 15px; border: 1px solid color-mix(in srgb, var(--gold) 35%, transparent); animation: screen-in .3s; }
 .hintbox .h .i { color: var(--gold); }

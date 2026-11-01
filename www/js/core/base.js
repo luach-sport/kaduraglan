@@ -2,7 +2,7 @@
 (function (G) {
   'use strict';
   const KG = (G.KG = G.KG || {});
-  const VER = G.KADURAGLAN_VERSION || { version: '1.01', build: 'dev' };
+  const VER = G.KADURAGLAN_VERSION || { version: '1.02', build: 'dev' };
   KG.VERSION = VER;
 
   const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };

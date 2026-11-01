@@ -163,3 +163,93 @@ test('progress survives garbage and keeps its shape', () => {
   assert.equal(back.xp, KG.P.xp);
   assert.throws(() => KG.readProgressBackup('{"x":1}'));
 });
+
+// ---- One 50:50 hint and one skip in every game ----
+const find = (pred) => KG.C.active.find(pred);
+const play = (ids) => { GM.cur = null; const s = GM.makeFree(ids, 'בדיקה'); s.ids = ids.slice(); GM.begin(s); return s; };
+
+test('hint 50:50: two wrong answers go, the question is worth half, once per game', () => {
+  const mcs = KG.C.active.filter((q) => q.type === 'mc' && q.w.length >= 3).slice(0, 3).map((q) => q.id);
+  const s = play(mcs);
+  const q = GM.q();
+  assert.equal(GM.hintsLeft(), 1);
+  assert.ok(GM.canHint(q));
+  assert.ok(GM.useHint());
+  const gone = GM.removed(q);
+  assert.equal(gone.length, 2);
+  assert.ok(!gone.map(KG.norm).includes(KG.norm(q.a)), 'the right answer stays');
+  assert.equal(GM.useHint(), false, 'not twice');
+  const r = GM.answer(q.a);
+  assert.equal(r.sc.pts, Math.round(KG.CFG.BASE[q.diff] / 2));
+  GM.next();
+  assert.equal(GM.hintsLeft(), 0);
+  assert.equal(GM.canHint(GM.q()), false, 'used up for this game');
+  assert.equal(GM.useHint(), false);
+  assert.equal(s.answers[0].hints, 1);
+});
+
+test('skip: once per game, no points, keeps the streak', () => {
+  const mcs = KG.C.active.filter((q) => q.type === 'mc').slice(10, 14).map((q) => q.id);
+  const s = play(mcs);
+  GM.answer(GM.q().a); GM.next();
+  GM.answer(GM.q().a); GM.next();
+  assert.equal(s.streak, 2);
+  const r = GM.skip();
+  assert.ok(r && r.skipped && !r.correct);
+  assert.equal(r.sc.pts, 0);
+  assert.equal(s.streak, 2, 'a skip does not break the streak');
+  GM.next();
+  assert.equal(GM.skipsLeft(), 0);
+  assert.equal(GM.skip(), null, 'only one skip per game');
+  assert.equal(s.answers.length, 3);
+});
+
+test('skip in survival does not cost a life', () => {
+  GM.cur = null;
+  GM.startSurvival();
+  const s = GM.cur;
+  assert.equal(s.lives, 3);
+  GM.skip();
+  assert.equal(s.lives, 3);
+  GM.next();
+  GM.answer(wrongChoice(GM.q()));
+  assert.equal(s.lives, 2);
+  GM.abandon();
+});
+
+test('no hint on true/false, the earliest item on "order by year", all clues in "who am I"', () => {
+  const tf = find((q) => q.type === 'tf'), ord = find((q) => q.type === 'order'), who = find((q) => q.type === 'whoami');
+  play([tf.id, ord.id]);
+  assert.equal(GM.canHint(GM.q()), false);
+  assert.equal(GM.useHint(), false);
+  assert.equal(GM.hintsLeft(), 1, 'nothing was used');
+  GM.answer(true); GM.next();
+  assert.ok(GM.useHint());
+  assert.ok(GM.hintUsed(ord));
+  assert.deepEqual(GM.removed(ord), []);
+  assert.ok(GM.answer(ord.items.map((i) => i.t)).correct);
+  play([who.id]);
+  assert.equal(GM.cluesShown(who), who.clues.length);
+  assert.ok(GM.useHint());
+  assert.equal(GM.removed(who).length, 2);
+});
+
+test('head to head: every player has their own hint and skip', () => {
+  GM.cur = null;
+  GM.startH2H(['א', 'ב'], 3, {});
+  const s = GM.cur;
+  GM.ready();
+  const p1 = GM.player();
+  if (GM.canHint(GM.q())) assert.ok(GM.useHint()); else p1.hintsLeft = 0;
+  GM.skip();
+  assert.equal(p1.hintsLeft, 0);
+  assert.equal(p1.skipsLeft, 0);
+  GM.next(); GM.ready();
+  const p2 = GM.player();
+  assert.notEqual(p1, p2);
+  assert.equal(GM.hintsLeft(), 1);
+  assert.equal(GM.skipsLeft(), 1);
+  assert.ok(GM.skip());
+  GM.abandon();
+  assert.ok(s);
+});

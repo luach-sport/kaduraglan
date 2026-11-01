@@ -121,7 +121,7 @@
       if (f.type === 'tf') h += '<span class="section-label">התשובה</span>' + KG.seg('qf-tf', [{ v: 'true', label: 'נכון' }, { v: 'false', label: 'לא נכון' }], String(f.tfA));
       else h += fld('a', 'התשובה הנכונה', f.a) + [0, 1, 2].map((i) => fld('w' + i, 'תשובה שגויה ' + (i + 1), f.w[i])).join('');
     }
-    h += fld('explain', 'הסבר קצר (מופיע אחרי התשובה)', f.explain, { area: true }) + fld('h1', 'רמז ראשון (לא חובה)', f.h1) + fld('h2', 'רמז שני (לא חובה)', f.h2);
+    h += fld('explain', 'הסבר קצר (מופיע אחרי התשובה)', f.explain, { area: true }) + fld('h1', 'משפט עזרה (לא חובה, מופיע יחד עם רמז 50:50)', f.h1);
     const teams = [...KG.C.ent.teams.values()].sort((a, b) => (a.tier || 3) - (b.tier || 3)).slice(0, 40);
     h += '<span class="section-label">קבוצות קשורות (לאתגר לפי קבוצה)</span><div class="chips">' + teams.map((t) => '<button type="button" class="chip sm" data-action="qf-team" data-v="' + t.id + '" aria-pressed="' + f.teams.includes(t.id) + '">' + esc(t.he) + '</button>').join('') + '</div>';
     h += '<div class="card tight"><div class="row"><span class="tile blue">' + icon('flag') + '</span><span class="grow"><span class="t">כדורגל ישראלי</span><span class="s">נספר בחלק הישראלי של המאגר</span></span>' + KG.sw('qf-il', f.il, 'כדורגל ישראלי') + '</div>' +
@@ -148,7 +148,7 @@
     if (!f.locked) {
       if (f.type === 'tf') q.a = f.tfA; else { q.a = f.a.trim(); q.w = f.w.map((x) => x.trim()).filter(Boolean); }
     }
-    Object.assign(q, { cat: f.cat, diff: f.diff, explain: f.explain.trim(), hints: [f.h1, f.h2].map((x) => x.trim()).filter(Boolean), teams: f.teams.slice(), src: f.src.trim(), ver: KG.dateKey(), origin: 'editor' });
+    Object.assign(q, { cat: f.cat, diff: f.diff, explain: f.explain.trim(), hints: [f.h1].concat((q.hints || []).slice(1)).map((x) => String(x || '').trim()).filter(Boolean), teams: f.teams.slice(), src: f.src.trim(), ver: KG.dateKey(), origin: 'editor' });
     if (f.il || f.cat === 'israel') q.il = true; else delete q.il;
     if (f.status === 'review') q.status = 'review'; else delete q.status;
     ['players', 'tags', 'grp', 'asOf', 'img', 'clues', 'items', 'sub'].forEach((k) => { if (base[k] != null && q[k] == null) q[k] = base[k]; });

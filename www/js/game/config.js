@@ -7,8 +7,10 @@
 
   // Points for a correct answer by difficulty (1 מתחיל … 6 בלתי אפשרי).
   CFG.BASE = [0, 100, 150, 200, 300, 400, 600];
-  CFG.HINT_COST = 0.25;          // each hint (or extra "who am I" clue) takes 25% of the question's points
-  CFG.MIN_FACTOR = 0.25;         // never less than a quarter
+  CFG.HINT_COST = 0.5;           // a question answered with the hint (50:50) is worth half
+  CFG.MIN_FACTOR = 0.5;
+  CFG.HINTS_PER_GAME = 1;        // one hint in every game (per player in head to head)
+  CFG.SKIPS_PER_GAME = 1;        // one skip in every game (per player in head to head)
   CFG.REPEAT_FACTOR = 0.1;       // a question solved before gives 10% to the total (no endless farming)
   CFG.DAILY_FACTOR = 1.5;        // the daily challenge counts ×1.5, once per day
   CFG.SPEED_MAX = 0.5;           // timed modes: up to +50% for a fast answer

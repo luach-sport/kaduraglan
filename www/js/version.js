@@ -1,1 +1,1 @@
-window.KADURAGLAN_VERSION = {"version":"1.01","build":"dev"};
+window.KADURAGLAN_VERSION = {"version":"1.02","build":"dev"};

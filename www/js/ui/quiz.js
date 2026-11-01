@@ -19,10 +19,12 @@
   QT.mc = (q) => {
     const a = fb();
     const opts = GM.options(q);
+    const gone = GM.removed(q);   // taken away by the 50:50 hint
     return '<div class="opts' + (a ? ' locked' : '') + '">' + opts.map((o, i) => {
       let cls = '';
       if (a) cls = KG.norm(o) === KG.norm(q.a) ? ' ok' : a.choice === o ? ' no' : ' dim';
-      return '<button type="button" class="opt' + cls + '" data-action="ans" data-i="' + i + '"><span class="k">' + KG.Q_LETTERS[i] + '</span><span class="grow">' + esc(o) + '</span>' +
+      if (gone.includes(o) && cls !== ' ok') cls += ' gone';
+      return '<button type="button" class="opt' + cls + '" data-action="ans" data-i="' + i + '"' + (gone.includes(o) ? ' aria-disabled="true" tabindex="-1"' : '') + '><span class="k">' + KG.Q_LETTERS[i] + '</span><span class="grow">' + esc(o) + '</span>' +
         (a && cls === ' ok' ? icon('check', 'sm') : a && cls === ' no' ? icon('close', 'sm') : '') + '</button>';
     }).join('') + '</div>';
   };
@@ -44,9 +46,11 @@
       return '<div class="order-list">' + q.items.map((it, i) => '<div class="order-item ' + (mine[i] === it.t ? 'ok' : 'no') + '"><span class="n">' + (i + 1) + '</span><span class="grow">' + esc(it.t) + '</span><span class="yr num">' + esc(it.y || it.k) + '</span></div>').join('') + '</div>';
     }
     const items = GM.orderItems(q);
+    const first = q.items[0].t;
+    if (GM.hintUsed(q) && ui.order[0] !== first) ui.order = [first].concat(ui.order.filter((t) => t !== first));   // the hint placed the earliest one
     return '<p class="fine">לוחצים על הפריטים לפי הסדר, מהמוקדם למאוחר. לחיצה על פריט שנבחר מבטלת אותו.</p><div class="order-list">' + items.map((t) => {
       const k = ui.order.indexOf(t);
-      return '<button type="button" class="order-item' + (k >= 0 ? ' picked' : '') + '" data-action="order-pick" data-t="' + esc(t) + '"><span class="n">' + (k >= 0 ? k + 1 : '') + '</span><span class="grow">' + esc(t) + '</span></button>';
+      return '<button type="button" class="order-item' + (k >= 0 ? ' picked' : '') + (GM.hintUsed(q) && t === first ? ' fixed' : '') + '" data-action="order-pick" data-t="' + esc(t) + '"><span class="n">' + (k >= 0 ? k + 1 : '') + '</span><span class="grow">' + esc(t) + '</span></button>';
     }).join('') + '</div>' + '<button type="button" class="btn" data-action="order-check"' + (ui.order.length === items.length ? '' : ' aria-disabled="true"') + '>' + icon('check') + 'בדיקה</button>';
   };
 
@@ -132,22 +136,28 @@
     h += '<div class="qcard"><div class="qtype">' + icon(q.type === 'tf' ? 'check' : q.type === 'order' ? 'sort' : q.type === 'whoami' ? 'user' : q.type === 'img' ? 'image' : 'question', 'sm') + esc((KG.schema.TYPES[q.type] || {}).name || '') + '</div>' +
       '<p class="qtext">' + esc(q.q) + '</p>';
     if (q.type === 'whoami') {
-      const n = s.phase === 'question' ? GM.cluesShown(q) : q.clues.length;
-      h += '<div class="clues">' + q.clues.slice(0, n).map((c, i) => '<div class="clue"><span class="n">' + (i + 1) + '</span><span>' + esc(c) + '</span></div>').join('') + '</div>';
+      h += '<div class="clues">' + q.clues.map((c, i) => '<div class="clue"><span class="n">' + (i + 1) + '</span><span>' + esc(c) + '</span></div>').join('') + '</div>';
     }
     if (q.asOf) h += '<div class="asof">' + icon('clock', 'sm') + ' נכון ל' + esc(asOfLabel(q.asOf)) + '</div>';
     h += '</div>';
 
-    const used = s.hints[q.id] || 0;
-    if (used && q.hints) h += '<div class="hintbox">' + q.hints.slice(0, used).map((t) => '<div class="h">' + icon('hint', 'sm') + '<span>' + esc(t) + '</span></div>').join('') + '</div>';
+    const used = GM.hintUsed(q) ? 1 : 0;
+    if (used && q.hints) h += '<div class="hintbox">' + q.hints.slice(0, 1).map((t) => '<div class="h">' + icon('hint', 'sm') + '<span>' + esc(t) + '</span></div>').join('') + '</div>';
     h += (QT[q.type] || QT.mc)(q);
 
     if (s.phase === 'question') {
-      const tools = [];
-      if (q.type === 'whoami' && GM.cluesShown(q) < q.clues.length) tools.push('<button type="button" class="btn secondary" data-action="more-clue">' + icon('plus', 'sm') + 'עוד רמז (−25%)</button>');
-      if (GM.hintsLeft(q) > 0) tools.push('<button type="button" class="btn secondary" data-action="hint">' + icon('hint', 'sm') + 'רמז (−25%)</button>');
-      if (s.skip) tools.push('<button type="button" class="btn secondary" data-action="skip">' + icon('skip', 'sm') + 'דילוג</button>');
-      if (tools.length) h += '<div class="qtools">' + tools.join('') + '</div>';
+      // One hint (50:50, the question is then worth half) and one skip in every game.
+      const hl = GM.hintsLeft(), sl = GM.skipsLeft();
+      const tool = (action, ic, label, sub, off) => '<button type="button" class="btn secondary tool" data-action="' + action + '"' + (off ? ' aria-disabled="true"' : '') + '>' +
+        icon(ic, 'sm') + '<span class="tl"><b>' + label + '</b><span>' + sub + '</span></span></button>';
+      let hint;
+      if (used) hint = tool('hint', 'hint', 'רמז 50:50', 'בשימוש עכשיו', true);
+      else if (hl <= 0) hint = tool('hint', 'hint', 'רמז 50:50', 'כבר נוצל', true);
+      else if (!GM.hintFits(q)) hint = tool('hint', 'hint', 'רמז 50:50', 'אין רמז כאן', true);
+      else hint = tool('hint', 'hint', 'רמז 50:50', q.type === 'order' ? 'מציב את הראשון · ½' : 'מוחק 2 · חצי ניקוד');
+      const skip = sl > 0 ? tool('skip', 'skip', 'דילוג', 'בלי ניקוד') : tool('skip', 'skip', 'דילוג', 'כבר נוצל', true);
+      h += '<div class="qtools">' + hint + skip + '</div>';
+      h += '<p class="fine center">' + (s.players ? 'לכל שחקן: ' : 'בכל משחק: ') + 'רמז אחד ודילוג אחד</p>';
     } else {
       h += feedback(s, q);
     }
@@ -213,8 +223,7 @@
     KG.render(true);
   };
   KG.A['order-check'] = () => answer(ui.order.slice());
-  KG.A['hint'] = () => { if (GM.useHint()) { KG.sound.play('tap'); KG.render(true); } };
-  KG.A['more-clue'] = () => { if (GM.moreClue()) { KG.sound.play('tap'); KG.render(true); } };
+  KG.A['hint'] = () => { if (GM.useHint()) { KG.sound.play('tap'); KG.haptic('light'); KG.render(true); } };
   KG.A['skip'] = () => { const r = GM.skip(); if (r) { ui.order = []; KG.render(true); } };
   KG.A['ready'] = () => { GM.ready(); KG.render(); };
   KG.A['next'] = () => {
