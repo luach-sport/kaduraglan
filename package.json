@@ -1,0 +1,27 @@
+{
+  "name": "kaduraglan",
+  "version": "1.0.1",
+  "private": true,
+  "description": "כדורגלן – חידון כדורגל בעברית לאנדרואיד ולאייפון. עובד בלי אינטרנט, עם עדכוני שאלות שלא מוחקים כלום.",
+  "scripts": {
+    "content": "node scripts/build-content.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "prepare-web": "node scripts/prepare-web.mjs"
+  },
+  "dependencies": {
+    "@capacitor-community/file-opener": "^7.0.1",
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/app": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/filesystem": "^7.0.0",
+    "@capacitor/haptics": "^7.0.0",
+    "@capacitor/network": "^7.0.0",
+    "@capacitor/preferences": "^7.0.0",
+    "@capacitor/share": "^7.0.0",
+    "@capacitor/status-bar": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.0.0",
+    "esbuild": "^0.25.0"
+  }
+}

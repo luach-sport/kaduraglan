@@ -1,0 +1,6 @@
+{
+  "id": "example-do-not-publish",
+  "title": "דוגמה לחבילת עדכון",
+  "contentVersion": 0,
+  "notes": "דוגמה בלבד. לא מתפרסמת: היא לא מופיעה ב-updates/index.json."
+}

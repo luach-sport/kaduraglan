@@ -1,0 +1,77 @@
+/* כדורגלן's colours and font on top of the shared Itzko kit: pitch green with a night-blue hero, gold for points. */
+@font-face {
+  font-family: 'Rubik';
+  src: url('../fonts/Rubik-var.ttf') format('truetype');
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+:root {
+  --bg: #F2F5F9;
+  --inset: #E8EEF5;
+  --line: #E1E7EF;
+  --ink: #0B1220;
+  --muted: #5D687C;
+  --primary: #0E9F59;
+  --primary-text: #0B7F46;
+  --primary-soft: #E2F5EA;
+  --on-primary: #FFFFFF;
+  --hero: radial-gradient(120% 140% at 100% 0%, #13573A 0%, #0B2F2A 38%, #0A1830 72%, #08101F 100%);
+  --hero-ink: #F4FAF7;
+  --hero-muted: #CFE6DA;
+  --hero-btn-ink: #0B7F46;
+  --orange-text: #B7790B;
+  --orange-soft: #FFF4D9;
+  --maker-accent: #0E9F59;
+  --credit-accent: #F6C453;
+  --credit-mono: #0E9F59;
+  --credit-mono-ink: #FFFFFF;
+  --credit-glow: rgba(14, 159, 89, 0.28);
+  --frame: #060A12;
+  --shadow: 0 18px 40px -18px rgba(14, 90, 60, 0.4);
+  --blue-text: #1D5BD8;
+  --blue-soft: #E6EEFF;
+  --purple-text: #6B3FD4;
+  --purple-soft: #EFE8FF;
+  --gold-text: #9A6A00;
+  --gold-soft: #FFF4D9;
+  --font: 'Rubik', 'Segoe UI', 'Arial Hebrew', Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #060A12; --surface: #0F1828; --inset: #0A111E; --line: #1F2A3E; --ink: #EEF3FA; --muted: #93A0B5;
+    --primary: #1FD17A; --primary-text: #3BE38E; --primary-soft: #0F2A1F; --on-primary: #03140A;
+    --orange-text: #F6C453; --orange-soft: #2A2208; --frame: #1A2840; --shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.75);
+    --blue-text: #7FB0FF; --blue-soft: #14233F; --purple-text: #C4A8FF; --purple-soft: #241A40; --gold-text: #F6C453; --gold-soft: #2A2208;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #060A12; --surface: #0F1828; --inset: #0A111E; --line: #1F2A3E; --ink: #EEF3FA; --muted: #93A0B5;
+  --primary: #1FD17A; --primary-text: #3BE38E; --primary-soft: #0F2A1F; --on-primary: #03140A;
+  --orange-text: #F6C453; --orange-soft: #2A2208; --frame: #1A2840; --shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.75);
+  --blue-text: #7FB0FF; --blue-soft: #14233F; --purple-text: #C4A8FF; --purple-soft: #241A40; --gold-text: #F6C453; --gold-soft: #2A2208;
+}
+.chapter-head .tile.orange { background: var(--orange-soft); color: var(--orange-text); }
+.chapter-head .tile.gold { background: var(--gold-soft); color: var(--gold-text); }
+.chapter-head .tile.blue { background: var(--blue-soft); color: var(--blue-text); }
+.chapter-head .tile.purple { background: var(--purple-soft); color: var(--purple-text); }
+.key.orange { color: var(--orange-text); background: var(--orange-soft); }
+.ask { background: var(--orange-soft); }
+
+/* iPhone: the button under "download for Android", and the install section with the QR code. */
+.iphone-cta { align-self: flex-start; }
+.btn.primary { background: var(--primary); color: var(--on-primary); box-shadow: var(--shadow); }
+.iphone-open { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px 28px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 24px; padding: 20px clamp(18px, 3vw, 28px); }
+.iphone-open-text { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-width: 0; }
+.iphone-open-text p { color: var(--muted); font-size: 15px; margin: 0; }
+.iphone-open .link-line { font-weight: 700; color: var(--primary-text); font-size: 15px; }
+.qr-box { background: #FFFFFF; border-radius: 18px; padding: 8px; width: 150px; box-shadow: 0 0 0 1px var(--line); }
+.qr-code { display: block; width: 100%; height: auto; }
+.steps.four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.iphone-diff { margin: 0; padding: 0 20px 0 0; display: flex; flex-direction: column; gap: 6px; font-size: 15px; color: var(--muted); }
+.iphone-diff b { color: var(--ink); }
+@media (max-width: 560px) {
+  .iphone-open { grid-template-columns: minmax(0, 1fr); }
+  .qr-box { display: none; }
+  .steps.four { grid-template-columns: minmax(0, 1fr); }
+}

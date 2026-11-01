@@ -1,0 +1,165 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'README.md'
+      - 'CLAUDE.md'
+      - 'docs/**'
+      - 'update.json'
+      - 'updates/**'
+      - 'site/**'
+      - 'scripts/site/**'
+      - '.github/workflows/site.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      APP_VERSION: '1.01'
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install packages
+        run: npm install --no-audit --no-fund
+
+      - name: Questions bank (build and check every question)
+        run: node scripts/build-content.mjs --check
+
+      - name: Tests (game, scoring, progress, content updates)
+        run: node --test tests/*.test.mjs
+
+      - name: Release key for signed update checks
+        env:
+          KADURAGLAN_KEY_PASS: ${{ secrets.KADURAGLAN_KEY_PASS }}
+        run: |
+          if [ -z "$KADURAGLAN_KEY_PASS" ]; then echo "::warning::No signing password, update checks are off in this build"; exit 0; fi
+          KD="$RUNNER_TEMP/update-key"; mkdir -p "$KD"; chmod 700 "$KD"
+          if ! openssl pkcs12 -in signing/release.jks -passin env:KADURAGLAN_KEY_PASS -nocerts -nodes -out "$KD/p.pem" 2>/dev/null; then
+            openssl pkcs12 -legacy -in signing/release.jks -passin env:KADURAGLAN_KEY_PASS -nocerts -nodes -out "$KD/p.pem"
+          fi
+          openssl pkey -in "$KD/p.pem" -out "$KD/key.pem"
+          rm -f "$KD/p.pem"
+          openssl pkey -in "$KD/key.pem" -pubout -out "$KD/pub.pem"
+          echo "UPDATE_KEY_DIR=$KD" >> "$GITHUB_ENV"
+
+      - name: Prepare web app (runtime, version)
+        run: node scripts/prepare-web.mjs
+
+      - name: Create Android project
+        run: npx cap add android
+
+      - name: Customize Android project
+        run: bash scripts/patch-android.sh
+
+      - name: Sync web app into Android
+        run: npx cap sync android
+
+      - name: Signing key
+        id: key
+        env:
+          KADURAGLAN_KEY_PASS: ${{ secrets.KADURAGLAN_KEY_PASS }}
+        run: |
+          if [ -z "$KADURAGLAN_KEY_PASS" ]; then
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Secret KADURAGLAN_KEY_PASS is missing, building a test APK only"
+          else
+            cp signing/release.jks android/app/release.jks
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build APK
+        working-directory: android
+        env:
+          KG_STORE_PASSWORD: ${{ secrets.KADURAGLAN_KEY_PASS }}
+          KG_KEY_PASSWORD: ${{ secrets.KADURAGLAN_KEY_PASS }}
+          KG_KEY_ALIAS: kaduraglan
+          SIGNED: ${{ steps.key.outputs.signed }}
+        run: |
+          chmod +x gradlew
+          if [ "$SIGNED" = "true" ]; then
+            ./gradlew assembleRelease --no-daemon --stacktrace
+            cp app/build/outputs/apk/release/app-release.apk ../kaduraglan.apk
+          else
+            ./gradlew assembleDebug --no-daemon --stacktrace
+            cp app/build/outputs/apk/debug/app-debug.apk ../kaduraglan.apk
+          fi
+
+      - name: Verify APK
+        run: |
+          ls -la kaduraglan.apk
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$BT/apksigner" verify --print-certs kaduraglan.apk | head -5 || true
+          "$BT/aapt" dump badging kaduraglan.apk 2>/dev/null | grep -E "package|sdkVersion|targetSdk|application-label" | head -6 || true
+
+      - name: Signed update notice
+        if: steps.key.outputs.signed == 'true' && env.UPDATE_KEY_DIR != ''
+        run: |
+          export TAG="v${APP_VERSION}-build${GITHUB_RUN_NUMBER}"
+          node scripts/make-update.mjs
+          rm -rf "$UPDATE_KEY_DIR"
+
+      - name: Publish release
+        if: steps.key.outputs.signed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v${APP_VERSION}-build${GITHUB_RUN_NUMBER}"
+          WHATS_NEW=""
+          if [ -f release-notes.txt ]; then WHATS_NEW=$'\n\nמה חדש:\n'"$(sed 's/^/• /' release-notes.txt)"; fi
+          NOTES=$'כדורגלן – חידון כדורגל בעברית. גרסה '"${APP_VERSION}"$' (בנייה '"${GITHUB_RUN_NUMBER}"$')'"${WHATS_NEW}"$'\n\nלהתקנה: מורידים את kaduraglan.apk בטלפון ופותחים אותו. בהתקנה הראשונה מאשרים "התקנה ממקור לא ידוע".\nכל גרסה חדשה מותקנת מעל הקיימת. ההתקדמות, הניקוד וכל השאלות נשמרים.'
+          ASSETS=(kaduraglan.apk)
+          if [ -f dist/update.json ]; then ASSETS+=(dist/update.json); fi
+          gh release create "$TAG" "${ASSETS[@]}" --title "כדורגלן ${APP_VERSION} (בנייה ${GITHUB_RUN_NUMBER})" --notes "$NOTES" --latest
+
+      - name: Point the repo at the new version (backup source for the app)
+        if: steps.key.outputs.signed == 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          [ -f dist/update.json ] || exit 0
+          SHA=$(gh api "repos/${GITHUB_REPOSITORY}/contents/update.json?ref=main" -q .sha 2>/dev/null || true)
+          ARGS=(-X PUT "repos/${GITHUB_REPOSITORY}/contents/update.json" -f message="גרסה זמינה לעדכון: ${APP_VERSION} (בנייה ${GITHUB_RUN_NUMBER})" -f content="$(base64 -w0 dist/update.json)" -f branch=main)
+          if [ -n "$SHA" ]; then ARGS+=(-f sha="$SHA"); fi
+          gh api "${ARGS[@]}" -q '.commit.sha' || echo "::warning::could not publish update.json in the repo"
+
+      - name: Refresh the website (new version number and what's new)
+        if: steps.key.outputs.signed == 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run site.yml --ref main -R "${GITHUB_REPOSITORY}"
+
+      - name: Keep the test APK
+        if: steps.key.outputs.signed != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: kaduraglan-test-apk
+          path: kaduraglan.apk
+
+      - name: Missing signing password
+        if: steps.key.outputs.signed != 'true'
+        run: |
+          echo "::error::Test build passed, but the APK was not published: add the secret KADURAGLAN_KEY_PASS"
+          exit 1

@@ -1,0 +1,20 @@
+{
+  "id": "kaduraglan",
+  "title": "כדורגלן – חידון כדורגל בעברית",
+  "description": "חידון כדורגל בעברית עם מאות שאלות אמיתיות על כדורגל ישראלי ועולמי: מסע חידות, אתגר יומי, הישרדות, ראש בראש ואתגר לפי קבוצה. עובד בלי אינטרנט. הורדה לאנדרואיד והתקנה באייפון. פותח על ידי Itzko.",
+  "themeColor": "#0E9F59",
+  "icon": "www/icon-512.png",
+  "fonts": "www/fonts",
+  "appDir": "www",
+  "versionFile": "js/version.js",
+  "versionGlobal": "KADURAGLAN_VERSION",
+  "shots": "scripts/site/scenes.mjs",
+  "css": ["brand.css"],
+  "creditText": "כדורגלן הוא אפליקציה עצמאית של Itzko: בלי פרסומות, בלי הרשמה, וההתקדמות שלכם נשארת אצלכם בטלפון. כל רעיון לשאלה, תקלה או טעות במאגר מגיעים ישירות אליו דרך \"פנייה / הצעת ייעול\" או כפתור הדיווח שבכל שאלה.",
+  "footerNote": "הנתונים בצילומי המסך הם לדוגמה. העובדות במאגר נבדקו מול מקורות, ונתונים עכשוויים מסומנים בתאריך שבו הם נכונים.",
+  "parts": [
+    "hero", "WHATS_NEW", "offline", "install", "tabs",
+    "ch-home", "ch-play", "ch-quiz", "ch-result", "ch-cats", "ch-ach", "ch-library", "ch-data", "ch-editor",
+    "ch-share", "ch-updates", "ch-feedback", "kit:share-band", "kit:credit", "kit:footer"
+  ]
+}

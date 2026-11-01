@@ -1,7 +1,9 @@
 node_modules/
 android/
 dist/
-.kit/
+.kit
 _site/
 *.log
 .DS_Store
+www/cap-runtime.js
+kaduraglan.apk
