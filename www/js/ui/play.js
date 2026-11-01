@@ -84,7 +84,7 @@
     const cur = Math.min(P.journey.unlocked, total);
     const done = Object.values(P.journey.stages).filter((s) => s.done).length;
     let h = KG.backBar('מסע החידות', done + ' שלבים הושלמו מתוך ' + total);
-    h += '<div class="notice">' + icon('info', 'sm') + '<span class="grow">בכל שלב 5 שאלות. 3 תשובות נכונות פותחות את השלב הבא, ו-5 מתוך 5 נותנות 3 כוכבים. ככל שמתקדמים, השאלות נעשות קשות יותר.</span></div>';
+    h += '<div class="notice">' + icon('info', 'sm') + '<span class="grow">בכל שלב 5 שאלות. 3 תשובות נכונות פותחות את השלב הבא, ו-5 מתוך 5 נותנות 3 כוכבים. כל נסיון בשלב מביא שאלות חדשות, וככל שמתקדמים הן נעשות קשות יותר.</span></div>';
     h += '<div class="stages">';
     for (let n = 1; n <= total; n++) {
       const st = P.journey.stages[n];

@@ -265,6 +265,7 @@
     } else {
       h += '<div class="result-hero"><div class="lbl">' + esc(r.title) + '</div>';
       if (r.mode === 'journey') h += '<div class="stars">' + [1, 2, 3].map((k) => icon('star', k <= r.stars ? '' : 'off')).join('') + '</div><div class="lbl">' + (r.passed ? 'עברת את השלב!' : 'צריך 3 תשובות נכונות כדי לעבור') + '</div>';
+      if (r.mode === 'journey' && !r.passed) h += '<div class="lbl">הנקודות שצברת נשמרו, ובנסיון הבא יהיו 5 שאלות חדשות.</div>';
       h += '<div class="big num">' + fmt(r.score) + '</div><div class="lbl">נקודות במשחק · ' + r.correct + ' מתוך ' + r.total + ' נכונות</div>';
       h += '<div class="chips"><span class="chip sm">' + icon('star', 'sm') + '+' + fmt(r.career) + ' לסך הכל</span>' + (r.best >= 3 ? '<span class="chip sm">' + icon('flame', 'sm') + r.best + ' ברצף</span>' : '') +
         r.records.map((x) => '<span class="chip sm">' + icon('trophy', 'sm') + esc(x) + '</span>').join('') + '</div></div>';
@@ -272,6 +273,7 @@
     }
     h += '<div class="btn-row">';
     if (r.mode === 'journey' && r.passed) h += '<button type="button" class="btn" data-action="next-stage">השלב הבא' + icon('chevL') + '</button>';
+    else if (r.mode === 'journey') h += '<button type="button" class="btn" data-action="again">' + icon('refresh') + 'לנסות שוב</button>';
     else if (r.mode !== 'daily') h += '<button type="button" class="btn" data-action="again">' + icon('refresh') + 'עוד משחק</button>';
     h += '<button type="button" class="btn secondary" data-action="result-home">' + icon('home') + 'בית</button></div>';
     if (s && s.answers.length) {

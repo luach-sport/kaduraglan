@@ -1,6 +1,6 @@
 /* Choosing questions for a game: questions you haven't met come first, no two questions of the same
    "group" (for example two "who won the Champions League in year X") in one game when it can be avoided,
-   the daily challenge is the same on every phone on the same day, and journey stages are fixed once opened. */
+   the daily challenge is the same on every phone on the same day, and a journey stage never repeats its last try. */
 (function (G) {
   'use strict';
   const KG = G.KG;
@@ -89,27 +89,36 @@
     return null;
   };
 
-  // Journey: a stage gets its questions the first time it's opened, and keeps them.
+  // Journey: every try of a stage gets 5 questions you haven't seen, of the stage's level.
+  // After a try the answers were shown, so playing the same 5 again would mean nothing: the next try
+  // (to pass a failed stage, or for more stars) never repeats the previous try's questions, and prefers
+  // questions you never met, then ones you got wrong, then ones you solved, before a nearby level.
   PK.journeyTotal = () => Math.max(1, Math.floor(PK.pool({}).length / KG.CFG.STAGE_SIZE));
   PK.stageIds = (n) => {
     const J = KG.P.journey;
-    const st = J.stages[n];
-    if (st && Array.isArray(st.ids) && st.ids.length) {
-      const live = st.ids.filter((id) => KG.C.q(id));
-      if (live.length >= KG.CFG.STAGE_PASS) return live;
-    }
-    const used = new Set();
-    Object.values(J.stages).forEach((s) => (s.ids || []).forEach((id) => used.add(id)));
-    const all = PK.pool({}).filter((q) => !used.has(q.id));
+    const st = J.stages[n] || {};
+    const SIZE = KG.CFG.STAGE_SIZE;
+    const last = new Set([].concat(st.ids || [], st.prev || []));
+    const other = new Set();
+    Object.keys(J.stages).forEach((k) => { if (+k !== n) (J.stages[k].ids || []).forEach((id) => other.add(id)); });
+    const all = PK.pool({});
     const target = KG.CFG.stageDiff(n);
-    const rand = KG.rng('journey-' + n);
-    let picked = [];
-    for (const d of [target, target - 1, target + 1, target - 2, target + 2, 1, 2, 3, 4, 5, 6]) {
-      if (picked.length >= KG.CFG.STAGE_SIZE) break;
-      picked = picked.concat(PK.choose(all.filter((q) => q.diff === d && !picked.includes(q)), KG.CFG.STAGE_SIZE - picked.length, rand));
-    }
+    const order = [target, target - 1, target + 1, target - 2, target + 2, 1, 2, 3, 4, 5, 6].filter((d, i, a) => d >= 1 && d <= 6 && a.indexOf(d) === i);
+    const rand = KG.rng('journey-' + n + '-' + (st.tries || 0));
+    const picked = [];
+    const take = (ok) => {
+      for (const d of order) {
+        if (picked.length >= SIZE) return;
+        PK.choose(all.filter((q) => q.diff === d && !picked.includes(q) && ok(q)), SIZE - picked.length, rand).forEach((q) => picked.push(q));
+      }
+    };
+    take((q) => weight(q) === 3 && !last.has(q.id) && !other.has(q.id));   // never met
+    take((q) => weight(q) === 2 && !last.has(q.id) && !other.has(q.id));   // got it wrong once
+    take((q) => !last.has(q.id) && !other.has(q.id));                      // solved before
+    take((q) => !last.has(q.id));                                         // a tiny bank: another stage's
+    take(() => true);                                                     // nothing else left
     const ids = picked.sort((a, b) => a.diff - b.diff).map((q) => q.id);
-    J.stages[n] = Object.assign({}, st || {}, { ids, best: (st && st.best) || 0, done: !!(st && st.done) });
+    J.stages[n] = Object.assign({}, st, { ids, prev: (st.ids || []).slice(), tries: (st.tries || 0) + 1, best: st.best || 0, done: !!st.done });
     return ids;
   };
 })(typeof window !== 'undefined' ? window : globalThis);

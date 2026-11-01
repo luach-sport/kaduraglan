@@ -66,7 +66,7 @@ test('achievements unlock once and stay', () => {
   assert.equal(KG.P.ach.first, t);
 });
 
-test('journey: 3 of 5 pass the stage and open the next one; stages keep their questions', () => {
+test('journey: 3 of 5 pass the stage and open the next one; a new try never repeats the last one', () => {
   const before = KG.P.journey.unlocked;
   GM.startJourney(1);
   const ids = GM.cur.ids.slice();
@@ -80,9 +80,29 @@ test('journey: 3 of 5 pass the stage and open the next one; stages keep their qu
   assert.equal(st.done, true);
   assert.equal(st.best, 1);
   assert.ok(KG.P.journey.unlocked >= Math.max(2, before));
-  assert.deepEqual(KG.pick.stageIds(1), ids, 'same questions when replayed');
+  const again = KG.pick.stageIds(1);
+  assert.equal(again.length, 5);
+  assert.ok(again.every((id) => !ids.includes(id)), 'a new try of the stage: 5 other questions');
   const s2 = KG.pick.stageIds(2);
-  assert.ok(s2.every((id) => !ids.includes(id)), 'stage 2 has other questions');
+  assert.ok(s2.every((id) => !ids.includes(id) && !again.includes(id)), 'stage 2 has other questions');
+});
+
+test('journey: a failed stage can be tried again with questions not seen in the failed try', () => {
+  GM.cur = null;
+  const n = 3;
+  GM.startJourney(n);
+  const first = GM.cur.ids.slice();
+  for (let k = 0; k < 5; k++) { GM.answer(wrongChoice(GM.q())); GM.next(); }
+  assert.equal(KG.P.journey.stages[n].done, false);
+  for (let t = 0; t < 3; t++) {
+    GM.startJourney(n);
+    const ids = GM.cur.ids;
+    assert.equal(ids.length, 5);
+    assert.ok(ids.every((id) => !first.includes(id)), 'no question whose answer was shown');
+    const diffs = ids.map((id) => KG.C.q(id).diff);
+    assert.ok(diffs.every((d) => Math.abs(d - KG.CFG.stageDiff(n)) <= 1), 'about the stage level');
+    GM.abandon();
+  }
 });
 
 test('daily challenge: same 7 questions for the same day, reward only once, clock moved back gives no reward', () => {
