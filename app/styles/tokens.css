@@ -1,0 +1,75 @@
+/* Colors, type and depth. Dark is the default look; light keeps the same feel on bright paper. */
+@font-face {
+  font-family: 'Rubik';
+  src: url('../fonts/Rubik-var.ttf') format('truetype');
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+:root, :root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #060A12;
+  --bg-2: #0A111E;
+  --surface: #0F1828;
+  --surface-2: #142035;
+  --surface-3: #1A2840;
+  --line: rgba(255, 255, 255, 0.075);
+  --line-2: rgba(255, 255, 255, 0.13);
+  --ink: #EEF3FA;
+  --ink-2: #C9D3E3;
+  --muted: #8B98AE;
+  --primary: #1FD17A;
+  --primary-2: #12B866;
+  --primary-ink: #03140A;
+  --primary-soft: rgba(31, 209, 122, 0.13);
+  --primary-text: #3BE38E;
+  --blue: #4C8DFF; --blue-soft: rgba(76, 141, 255, 0.14);
+  --gold: #F6C453; --gold-soft: rgba(246, 196, 83, 0.14);
+  --red: #FF5A6E; --red-soft: rgba(255, 90, 110, 0.14);
+  --orange: #FF9A3D; --orange-soft: rgba(255, 154, 61, 0.14);
+  --purple: #9B7BFF; --purple-soft: rgba(155, 123, 255, 0.15);
+  --green: #1FD17A; --green-soft: rgba(31, 209, 122, 0.13);
+  --hero: radial-gradient(120% 140% at 100% 0%, #13573A 0%, #0B2F2A 38%, #0A1830 72%, #08101F 100%);
+  --hero-ink: #F4FAF7;
+  --hero-muted: rgba(230, 245, 238, 0.72);
+  --card-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 14px 34px -18px rgba(0, 0, 0, 0.85);
+  --lift: 0 18px 40px -16px rgba(0, 0, 0, 0.9);
+  --glow: 0 0 0 1px rgba(31, 209, 122, 0.35), 0 14px 34px -12px rgba(31, 209, 122, 0.55);
+  --scrim: rgba(2, 5, 10, 0.66);
+  --font: 'Rubik', 'Segoe UI', 'Arial Hebrew', Arial, sans-serif;
+  --r-sm: 12px; --r: 18px; --r-lg: 24px; --r-xl: 30px;
+  --tabbar-h: 66px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #F2F5F9;
+  --bg-2: #E8EDF4;
+  --surface: #FFFFFF;
+  --surface-2: #F5F7FB;
+  --surface-3: #EBF0F6;
+  --line: #E1E7EF;
+  --line-2: #D2DAE6;
+  --ink: #0B1220;
+  --ink-2: #26324A;
+  --muted: #5D687C;
+  --primary: #0E9F59;
+  --primary-2: #0B8A4C;
+  --primary-ink: #FFFFFF;
+  --primary-soft: #E2F5EA;
+  --primary-text: #0B7F46;
+  --blue: #2563EB; --blue-soft: #E7EEFF;
+  --gold: #B7790B; --gold-soft: #FFF4D9;
+  --red: #DC2645; --red-soft: #FFE8EC;
+  --orange: #D9661A; --orange-soft: #FFF0E3;
+  --purple: #6D4AE0; --purple-soft: #F0EBFF;
+  --green: #0E9F59; --green-soft: #E2F5EA;
+  --hero: radial-gradient(120% 140% at 100% 0%, #18B26A 0%, #0E8A57 40%, #0B5E6E 78%, #0B3F66 100%);
+  --hero-ink: #FFFFFF;
+  --hero-muted: rgba(255, 255, 255, 0.82);
+  --card-shadow: 0 1px 2px rgba(16, 24, 40, 0.05), 0 12px 28px -18px rgba(16, 24, 40, 0.28);
+  --lift: 0 18px 36px -18px rgba(16, 24, 40, 0.35);
+  --glow: 0 0 0 1px rgba(14, 159, 89, 0.25), 0 14px 30px -14px rgba(14, 159, 89, 0.55);
+  --scrim: rgba(11, 18, 32, 0.45);
+}
